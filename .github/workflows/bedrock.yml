@@ -13,7 +13,7 @@ on:
         default: "1800"
       concurrency:
         required: true
-        default: "5000"
+        default: "3000"
       sockets:
         required: true
         default: "2"
@@ -41,10 +41,10 @@ jobs:
 
       - name: load
         env:
-  HOST: ${{ github.event.inputs.host || 'business3.astrixhost.web.id' }}
-  PORT: ${{ github.event.inputs.port || '5073' }}
-  DURATION: ${{ github.event.inputs.duration || '1800' }}
-  CONC: ${{ github.event.inputs.concurrency || '3000' }}
-  SOCKETS: ${{ github.event.inputs.sockets || '2' }}
-  SHARD: ${{ matrix.shard }}
+          HOST: ${{ github.event.inputs.host || 'business3.astrixhost.web.id' }}
+          PORT: ${{ github.event.inputs.port || '5073' }}
+          DURATION: ${{ github.event.inputs.duration || '1800' }}
+          CONC: ${{ github.event.inputs.concurrency || '3000' }}
+          SOCKETS: ${{ github.event.inputs.sockets || '2' }}
+          SHARD: ${{ matrix.shard }}
         run: python bedrock_load.py
