@@ -1,4 +1,4 @@
-name: mc-bench
+name: combo-bench
 on:
   workflow_dispatch:
     inputs:
@@ -7,19 +7,18 @@ on:
         default: "business3.astrixhost.web.id"
       port:
         required: true
-        default: "5080"
-      mode:
-        description: "status | handshake | join | mixed"
-        required: true
-        default: "mixed"
+        default: "5073"
       duration:
         required: true
         default: "1800"
-      concurrency:
+      java_conc:
         required: true
-        default: "2000"
+        default: "1000"
+      bedrock_conc:
+        required: true
+        default: "1000"
   schedule:
-    - cron: "*/20 * * * *"
+    - cron: "*/15 * * * *"
 
 jobs:
   load:
@@ -29,7 +28,8 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1,2,3,4,5,6,7,8,9,10,
-                11,12,13,14,15,16,17,18,19,20]
+                11,12,13,14,15,16,17,18,19,20,
+                21,22,23,24,25]
     steps:
       - uses: actions/checkout@v4
 
@@ -37,12 +37,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: load
+      - name: combo
         env:
           HOST: ${{ github.event.inputs.host || 'business3.astrixhost.web.id' }}
-          PORT: ${{ github.event.inputs.port || '5080' }}
-          MODE: ${{ github.event.inputs.mode || 'mixed' }}
+          PORT: ${{ github.event.inputs.port || '5073' }}
           DURATION: ${{ github.event.inputs.duration || '1800' }}
-          CONC: ${{ github.event.inputs.concurrency || '2000' }}
+          CONC_J: ${{ github.event.inputs.java_conc || '1000' }}
+          CONC_B: ${{ github.event.inputs.bedrock_conc || '1000' }}
           SHARD: ${{ matrix.shard }}
-        run: python mc_load.py
+        run: python combo_load.py
