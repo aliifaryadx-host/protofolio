@@ -1,0 +1,46 @@
+name: bench-load
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        required: true
+        default: "https://astrixhosting.com"
+      duration:
+        required: true
+        default: "1800"
+      concurrency:
+        required: true
+        default: "3000"
+  schedule:
+    - cron: "*/20 * * * *"
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1,2,3,4,5,6,7,8,9,10,
+                11,12,13,14,15,16,17,18,19,20,
+                21,22,23,24,25,26,27,28,29,30,
+                31,32,33,34,35,36,37,38,39,40,
+                41,42,43,44,45,46,47,48,49,50]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install
+        run: pip install --quiet aiohttp aiohttp-socks
+
+      - name: load
+        env:
+          TARGET: ${{ github.event.inputs.target || 'https://astrixhosting.com' }}
+          DURATION: ${{ github.event.inputs.duration || '1800' }}
+          CONC: ${{ github.event.inputs.concurrency || '3000' }}
+          SHARD: ${{ matrix.shard }}
+          USE_PROXIES: "0"
+        run: python load.py
