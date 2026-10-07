@@ -1,8 +1,0 @@
-{
-  "name": "mc-botflood",
-  "version": "1.0.0",
-  "main": "botflood.js",
-  "dependencies": {
-    "mineflayer": "^4.20.0"
-  }
-}
