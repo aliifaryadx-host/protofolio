@@ -1,0 +1,148 @@
+/* ===== COMPONENTS: teks ransom, menu, kartu, skill, kontak, gambar ===== */
+
+/* ----- Ransom text ----- */
+.ransom{display:flex;flex-wrap:wrap;gap:.08em;font-weight:900;line-height:1.1}
+.ransom-xl{font-size:clamp(2.2rem,8vw,5.5rem);justify-content:center}
+.ransom-lg{font-size:clamp(2.2rem,7.5vw,4.6rem)}
+.ransom-md{font-size:clamp(2.6rem,8vw,5rem)}
+.ransom span{display:inline-flex;align-items:center;justify-content:center;padding:.08em .28em;font-family:var(--f-marker);text-transform:uppercase;box-shadow:4px 4px 0 rgba(0,0,0,.9);transition:transform .2s,background .2s,color .2s}
+.ransom span:nth-child(4n+1){background:#fff;color:#000;transform:rotate(-3deg) scale(1.05)}
+.ransom span:nth-child(4n+2){background:#000;color:#fff;border:2px solid #fff;transform:rotate(2deg) scale(.98)}
+.ransom span:nth-child(4n+3){background:var(--red);color:#fff;transform:rotate(-2deg) scale(1.02)}
+.ransom span:nth-child(4n){background:#fff;color:var(--red);transform:rotate(4deg) scale(1.08)}
+.ransom span:hover{transform:rotate(0) scale(1.25) translateY(-6px);background:var(--yellow);color:#000;z-index:2}
+
+/* ----- Hero ----- */
+.hero-copy{display:flex;flex-direction:column;align-items:flex-start;gap:1.2rem;min-width:0}
+.badge{background:#000;color:var(--red-l);font-weight:800;padding:.3rem .8rem;font-size:.85rem;letter-spacing:.18em;border-left:4px solid var(--red)}
+.typer-line{font-family:var(--f-hud);font-size:clamp(1.5rem,4vw,2.2rem);letter-spacing:.08em;background:#000;padding:.1rem .8rem;border:2px solid #fff;transform:skewX(-8deg);box-shadow:5px 5px 0 var(--red)}
+.typer{color:var(--yellow)}
+.caret{display:inline-block;width:.1em;height:.9em;margin-left:.1em;background:#fff;vertical-align:-.08em}
+.desc-box{max-width:36rem;background:rgba(0,0,0,.9);border:2px solid #fff;padding:1rem 1.2rem;line-height:1.65;font-size:clamp(.85rem,1.8vw,1rem);font-weight:500;transform:skewX(-3deg);box-shadow:6px 6px 0 var(--red)}
+
+.menu{display:flex;flex-direction:column;gap:.8rem;width:100%;max-width:26rem;margin-top:.5rem}
+.menu-item{display:flex;align-items:center;justify-content:space-between;text-align:left;background:#000;color:#fff;border:3px solid #000;box-shadow:6px 6px 0 #000;padding:.4rem 1.6rem .4rem 1.2rem;transform:skewX(-12deg);transition:transform .25s cubic-bezier(.175,.885,.32,1.275),background .2s,color .2s,box-shadow .2s}
+.mi-label{font-family:var(--f-marker);font-size:clamp(1.5rem,5vw,2rem);letter-spacing:.06em;display:flex;align-items:center}
+.mi-cap{display:inline-flex;margin-right:.4rem;padding:0 .35em;background:var(--red);color:#fff;font-size:.85em;transform:rotate(-4deg)}
+.mi-arrow{opacity:0;transform:translateX(-10px);transition:.2s;font-weight:900}
+.menu-item:hover,.menu-item:focus-visible,.menu-item.is-focus{background:#fff;color:#000;transform:skewX(-12deg) scale(1.06) translateX(12px);box-shadow:-8px 8px 0 var(--red),8px 8px 0 #000}
+.menu-item:hover .mi-arrow,.menu-item:focus-visible .mi-arrow,.menu-item.is-focus .mi-arrow{opacity:1;transform:none}
+
+.hero-art{display:flex;justify-content:center}
+
+/* ----- Frame / penempatan gambar ----- */
+.frame{position:relative;overflow:hidden;background:#111;border:4px solid #fff}
+.frame img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.frame:hover img{transform:scale(1.07)}
+.frame.no-img{background:repeating-linear-gradient(-45deg,#161616 0 14px,#1f1f1f 14px 28px)}
+.frame.no-img img{display:none}
+.frame.no-img::after{content:"TARUH GAMBAR\A" attr(data-slot);white-space:pre;position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:1rem;font:700 .72rem/1.7 ui-monospace,Menlo,monospace;color:#9a9a9a}
+.frame-hero{width:100%;max-width:26rem;aspect-ratio:1;box-shadow:12px 12px 0 var(--red);--base:rotate(-2deg);background:#000}
+.frame-hero::before{content:"";position:absolute;inset:0;background:var(--red);opacity:.85;clip-path:polygon(0 0,100% 20%,80% 100%,0 80%)}
+.frame-hero img{object-fit:contain;padding:.5rem}
+.frame-hero.no-img::before{display:none}
+.frame-square{aspect-ratio:1;border:2px solid #000}
+.frame-portrait{width:100%;max-width:24rem;aspect-ratio:4/5;box-shadow:10px 10px 0 var(--red);--base:rotate(-1deg)}
+.frame-portrait::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(0,0,0,.9),transparent 55%)}
+.sticker{position:absolute;z-index:3;color:var(--yellow);font-size:2.2rem;text-shadow:3px 3px 0 #000;animation:spin 6s linear infinite}
+.s1{top:.6rem;left:.8rem}
+.s2{top:3.2rem;right:1rem;color:#fff;font-size:1.6rem;animation-duration:4s;animation-direction:reverse}
+.float-badge{position:absolute;z-index:3;right:.8rem;bottom:.8rem;background:#fff;color:#000;border:2px solid #000;padding:.25rem .8rem;font-weight:900;font-size:.75rem;letter-spacing:.08em}
+.tilt{transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) var(--base,rotate(0deg));transition:transform .18s ease-out;will-change:transform}
+
+/* ----- Header section ----- */
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;border-bottom:4px solid #fff;padding-bottom:1rem}
+.sub{display:inline-block;margin-top:.7rem;background:#fff;color:#000;padding:.15rem .7rem;font-size:.72rem;font-weight:800;letter-spacing:.14em}
+.btn-back{background:#000;color:#fff;border:2px solid #fff;padding:.1rem 1.2rem;font-family:var(--f-hud);font-size:1.6rem;letter-spacing:.06em;transition:background .2s,color .2s}
+.btn-back:hover{background:#fff;color:#000}
+
+/* ----- Project cards ----- */
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,17.5rem),1fr));gap:1.6rem;padding:.5rem .5rem 1rem}
+.card{background:#000;border:3px solid #fff;box-shadow:8px 8px 0 var(--red);--base:skewX(-4deg);display:flex;flex-direction:column}
+.card:hover{box-shadow:12px 12px 0 #fff}
+.card-in{transform:skewX(4deg);padding:1rem;display:flex;flex-direction:column;gap:.8rem;height:100%}
+.card .frame{aspect-ratio:16/10;border-width:2px}
+.chip{position:absolute;z-index:2;left:.5rem;top:.5rem;background:var(--red);color:#fff;font-weight:800;font-size:.68rem;padding:.15rem .5rem;text-transform:uppercase}
+.card h3{font-size:1.4rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;line-height:1.15}
+.card p{font-size:.78rem;line-height:1.65;color:#d0d0d0;flex:1}
+.card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;padding-top:.7rem;border-top:1px solid #333}
+.status{font-size:.72rem;font-weight:800;color:var(--red-l);text-transform:uppercase}
+.year{font:600 .72rem ui-monospace,Menlo,monospace;color:#999}
+.btn-sm{background:#fff;color:#000;font-weight:800;font-size:.75rem;padding:.35rem .8rem;border:1px solid #000;transition:background .2s,color .2s}
+.btn-sm:hover{background:var(--red);color:#fff}
+
+/* ----- Skills ----- */
+.grid-skills{display:grid;grid-template-columns:1fr 1fr;gap:2rem;padding:.5rem}
+.skill-box{background:#000;border:3px solid #fff;padding:1.5rem;box-shadow:8px 8px 0 var(--red);transform:skewX(-2deg)}
+.skill-box h3{display:inline-block;background:#fff;color:#000;font-weight:900;font-size:1.1rem;padding:.2rem .8rem;margin-bottom:1.4rem;transform:skewX(-6deg);text-transform:uppercase}
+.skill-list{display:flex;flex-direction:column;gap:1.2rem}
+.skill-row{display:flex;justify-content:space-between;font-weight:800;font-size:.85rem;margin-bottom:.35rem;gap:1rem}
+.skill-row em{font:700 .85rem ui-monospace,Menlo,monospace;font-style:normal;color:var(--red-l)}
+.bar{height:22px;background:#222;border:2px solid #fff;transform:skewX(-12deg);overflow:hidden}
+.bar i{display:block;height:100%;width:var(--w);background:linear-gradient(90deg,var(--red),var(--red-l));position:relative}
+.bar i::after{content:"";position:absolute;top:0;bottom:0;width:30%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shine 2.6s ease-in-out infinite}
+
+/* ----- About ----- */
+.grid-split{display:grid;grid-template-columns:5fr 7fr;gap:2rem;align-items:center;padding:.5rem}
+.polaroid-wrap,.contact-art{display:flex;justify-content:center}
+.polaroid{width:100%;max-width:20rem;background:#fff;color:#000;padding:1rem 1rem 1.4rem;border:2px solid #000;box-shadow:12px 12px 0 #000;text-align:center;--base:rotate(-3deg)}
+.polaroid .frame{margin-bottom:.8rem}
+.pol-name{font-family:var(--f-marker);font-size:1.6rem;letter-spacing:.08em}
+.pol-loc{font-size:.72rem;font-weight:800;letter-spacing:.14em;color:#555;margin-top:.2rem}
+.info-box{background:#fff;color:#000;border:4px solid #000;box-shadow:10px 10px 0 var(--red);padding:clamp(1.2rem,3vw,2rem);transform:skewX(1deg);display:flex;flex-direction:column;gap:1rem;line-height:1.7}
+.info-box h3{font-size:clamp(1rem,2.4vw,1.3rem);font-weight:900;text-transform:uppercase;line-height:1.8}
+.info-box p{font-size:clamp(.85rem,1.8vw,1rem);color:#222}
+mark{color:#fff;padding:.05rem .5rem}
+.m-black{background:#000}.m-red{background:var(--red)}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem}
+.chip-b,.chip-r{color:#fff;font-weight:900;font-size:.72rem;padding:.3rem .8rem}
+.chip-b{background:#000}.chip-r{background:var(--red)}
+.link-btn{font-weight:900;color:var(--red);text-decoration:underline}
+
+/* ----- Contact ----- */
+.contact-cap{position:absolute;z-index:2;inset:auto 0 0 0;padding:1.5rem;text-align:center;display:flex;flex-direction:column;gap:.3rem}
+.contact-cap b{font-family:var(--f-marker);font-size:1.9rem;letter-spacing:.08em;font-weight:400}
+.contact-cap small{font-size:.75rem;color:#ddd}
+.plane{font-size:3.2rem;animation:bob 1.6s ease-in-out infinite}
+.channels{display:flex;flex-direction:column;gap:1rem}
+.channel{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:#000;border:3px solid #fff;padding:1rem;transform:skewX(-6deg);transition:background .2s,color .2s,transform .25s cubic-bezier(.175,.885,.32,1.275),box-shadow .2s}
+.channel:hover{background:#fff;color:#000;transform:skewX(-6deg) translateX(10px);box-shadow:-8px 8px 0 var(--red)}
+.ch-ico{flex:none;width:3rem;height:3rem;display:grid;place-items:center;background:var(--red);color:#fff;font-weight:900;font-size:1.5rem;border:1px solid #000}
+.ch-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.ch-txt b{font-size:1.1rem;letter-spacing:.06em}
+.ch-txt small{font:500 .75rem ui-monospace,Menlo,monospace;color:#9a9a9a;overflow:hidden;text-overflow:ellipsis}
+.channel:hover small{color:#333}
+.ch-go{flex:none;background:#fff;color:#000;border:1px solid #000;font-weight:800;font-size:.72rem;padding:.4rem .8rem;transition:.2s}
+.channel:hover .ch-go{background:#000;color:#fff}
+
+/* ----- Tulisan bergerak (ticker) ----- */
+.ticker{position:relative;z-index:15;height:5.4rem;overflow:hidden;margin-top:.5rem;pointer-events:none}
+.band{position:absolute;left:-5%;width:110%;overflow:hidden;font-family:var(--f-hud);font-size:clamp(1.3rem,3vw,1.8rem);letter-spacing:.14em;white-space:nowrap;line-height:1.5}
+.band.a{top:.7rem;background:#fff;color:#000;border-block:3px solid #000;transform:rotate(-1.6deg)}
+.band.b{top:2.5rem;background:#000;color:var(--red-l);border-block:3px solid #fff;transform:rotate(1.2deg)}
+.track{display:flex;width:max-content;animation:marquee 26s linear infinite}
+.band.b .track{animation-direction:reverse;animation-duration:32s}
+.track span{padding:0 1.1rem}
+
+/* ----- Intro ----- */
+.intro{position:fixed;inset:0;z-index:90;background:#000;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.intro[hidden]{display:none}
+.intro-burst{position:absolute;inset:0;background:var(--red);clip-path:polygon(0 18%,100% 0,100% 82%,0 100%);opacity:.95}
+.intro-inner{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(1.2rem,4vh,2.2rem);padding:var(--gap);text-align:center}
+.intro-tag{background:#000;color:#fff;font-weight:800;letter-spacing:.3em;font-size:.8rem;padding:.4rem 1rem;border:2px solid #fff;transform:skewX(-10deg)}
+.intro-hint{font-size:.8rem;font-weight:600;color:#fff;text-shadow:0 2px 0 #000}
+.btn-start{font-family:var(--f-hud);font-weight:700;font-size:clamp(2.2rem,7vw,3.6rem);letter-spacing:.16em;padding:.05em .9em;background:#fff;color:#000;border:4px solid #000;box-shadow:8px 8px 0 #000;transform:skewX(-12deg)}
+.btn-start:hover{background:var(--yellow)}
+.ticker-intro{position:relative;margin:0;height:3.2rem}
+.ticker-intro .band{top:.2rem;transform:rotate(-1deg)}
+
+@media (max-width:900px){
+  .grid-skills,.grid-split{grid-template-columns:1fr}
+  .skill-box{transform:none}
+}
+@media (max-width:560px){
+  .channel{flex-wrap:wrap}
+  .ch-go{width:100%;text-align:center}
+  .menu-item:hover,.menu-item.is-focus{transform:skewX(-12deg) scale(1.03) translateX(6px)}
+  .btn-back{font-size:1.3rem}
+}
