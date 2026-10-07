@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#d6001c">
+  <title>PORTFOLIO ALIIFARYAZAKII</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Teko:wght@500;600;700&family=Montserrat:ital,wght@0,500;0,700;0,900;1,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body id="app-body" class="is-intro">
+
+  <!-- Background layers -->
+  <div class="bg-stripes"></div>
+  <div class="bg-stars" id="stars" aria-hidden="true"></div>
+  <div class="bg-vignette"></div>
+
+  <!-- Effect overlays -->
+  <div id="flash" class="flash" aria-hidden="true"></div>
+  <div id="wipe" class="wipe" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div id="fx" class="fx" aria-hidden="true"></div>
+
+  <!-- ============ INTRO / PRESS START ============ -->
+  <div id="intro" class="intro">
+    <div class="intro-burst"></div>
+    <div class="intro-inner">
+      <p class="intro-tag">PORTFOLIO • EDISI 2026</p>
+      <h1 class="ransom ransom-xl" data-ransom="ALIIFARYAZAKII" aria-label="Aliifaryazakii"></h1>
+      <button id="start-btn" class="btn-start press">PRESS START</button>
+      <p class="intro-hint">Klik tombol atau tekan <kbd>ENTER</kbd> • nyalakan suara biar lebih seru</p>
+    </div>
+    <div class="ticker ticker-intro"><div class="band a"><div class="track" data-ticker="game"></div></div></div>
+  </div>
+
+  <!-- ============ APP ============ -->
+  <div id="app" class="app">
+
+    <header class="hud-header">
+      <div class="tag tag-logo skew"><span class="dot">■</span> PORTFOLIO ALIIFARYAZAKII</div>
+      <div class="hud-right">
+        <div class="tag tag-info skew">LAMPUNG • FULL-STACK &amp; BEDROCK DEVELOPER</div>
+        <button id="sound-btn" class="btn-sound skew press" aria-pressed="true" title="Nyala/matikan suara">SFX ON</button>
+      </div>
+    </header>
+
+    <main class="stage">
+
+      <!-- VIEW: HERO -->
+      <section id="view-hero" class="view view-hero active" data-view="hero">
+        <div class="hero-copy">
+          <div class="badge skew" data-reveal>LIHAT KARYAKU</div>
+          <h2 class="ransom ransom-lg" data-ransom="ALIIFARYAZAKII" aria-label="Aliifaryazakii"></h2>
+          <p class="typer-line" data-reveal>Aku bikin <span id="typer" class="typer"></span><span class="caret"></span></p>
+          <div class="desc-box" data-reveal>
+            Full-stack developer yang bikin aplikasi web &amp; Add-on Minecraft Bedrock yang cepat, rapi, dan seru dipakai. Fokus ke UI berkarakter dengan kode yang bersih di baliknya.
+          </div>
+          <nav class="menu" id="main-menu" aria-label="Menu utama">
+            <button class="menu-item press" data-go="projects" data-reveal><span class="mi-label"><span class="mi-cap">P</span>ROJECTS</span><span class="mi-arrow">◄</span></button>
+            <button class="menu-item press" data-go="skills" data-reveal><span class="mi-label"><span class="mi-cap">S</span>KILLS</span><span class="mi-arrow">◄</span></button>
+            <button class="menu-item press" data-go="about" data-reveal><span class="mi-label"><span class="mi-cap">A</span>BOUT</span><span class="mi-arrow">◄</span></button>
+            <button class="menu-item press" data-go="contact" data-reveal><span class="mi-label"><span class="mi-cap">C</span>ONTACT</span><span class="mi-arrow">◄</span></button>
+          </nav>
+        </div>
+
+        <div class="hero-art" data-reveal>
+          <!-- GANTI GAMBAR: assets/images/hero.png (disarankan PNG transparan / persegi) -->
+          <figure class="frame frame-hero tilt" data-slot="assets/images/hero.png">
+            <img src="assets/images/hero.png" alt="Ilustrasi karakter Aliifaryazakii" onerror="this.parentNode.classList.add('no-img')">
+            <span class="sticker s1">★</span><span class="sticker s2">✦</span>
+            <figcaption class="float-badge skew">PHANTOM CODER</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- VIEW: PROJECTS -->
+      <section id="view-projects" class="view view-section" data-view="projects">
+        <div class="sec-head" data-reveal>
+          <div>
+            <h2 class="ransom ransom-md" data-ransom="PROJECTS" aria-label="Projects"></h2>
+            <span class="sub skew">KARYA PILIHAN // DEPLOY TERBARU</span>
+          </div>
+          <button class="btn-back skew press" data-go="hero">ESC • BACK</button>
+        </div>
+        <div class="grid-cards" id="projects-grid"></div>
+      </section>
+
+      <!-- VIEW: SKILLS -->
+      <section id="view-skills" class="view view-section" data-view="skills">
+        <div class="sec-head" data-reveal>
+          <div>
+            <h2 class="ransom ransom-md" data-ransom="SKILLS" aria-label="Skills"></h2>
+            <span class="sub skew">STATUS TEMPUR // TECH STACK</span>
+          </div>
+          <button class="btn-back skew press" data-go="hero">ESC • BACK</button>
+        </div>
+        <div class="grid-skills" id="skills-grid"></div>
+      </section>
+
+      <!-- VIEW: ABOUT -->
+      <section id="view-about" class="view view-section" data-view="about">
+        <div class="sec-head" data-reveal>
+          <div>
+            <h2 class="ransom ransom-md" data-ransom="ABOUT" aria-label="About"></h2>
+            <span class="sub skew">PROFIL RAHASIA // ALIIFARYAZAKII</span>
+          </div>
+          <button class="btn-back skew press" data-go="hero">ESC • BACK</button>
+        </div>
+        <div class="grid-split">
+          <div class="polaroid-wrap" data-reveal>
+            <!-- GANTI GAMBAR: assets/images/profile.jpg (rasio persegi) -->
+            <div class="polaroid tilt">
+              <figure class="frame frame-square" data-slot="assets/images/profile.jpg">
+                <img src="assets/images/profile.jpg" alt="Foto Aliifaryazakii" loading="lazy" onerror="this.parentNode.classList.add('no-img')">
+              </figure>
+              <span class="pol-name">ALIIFARYAZAKII</span>
+              <p class="pol-loc">LAMPUNG, INDONESIA</p>
+            </div>
+          </div>
+          <div class="info-box" data-reveal>
+            <h3>Halo! Aku <mark class="m-black">Aliifaryazakii</mark>, full-stack developer &amp; Bedrock API developer asal <mark class="m-red">g3, Suka Bhakti</mark>.</h3>
+            <p>Aku fokus bikin aplikasi web modern dengan tampilan yang berkarakter, plus skrip otomatisasi dan modifikasi game.</p>
+            <div class="chips">
+              <span class="chip-b skew">REKAYASA PERANGKAT LUNAK</span>
+              <span class="chip-r skew">FULL-STACK &amp; SCRIPT API</span>
+            </div>
+            <p>Dari desain skema database, API kustom, sampai efek animasi interaktif, aku pastikan kodenya tetap bersih dan ngebut. Punya ide proyek atau mau kolaborasi? Kirim pesan lewat halaman <button class="link-btn press" data-go="contact">Contact</button>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: CONTACT -->
+      <section id="view-contact" class="view view-section" data-view="contact">
+        <div class="sec-head" data-reveal>
+          <div>
+            <h2 class="ransom ransom-md" data-ransom="CONTACT" aria-label="Contact"></h2>
+            <span class="sub skew">NOMOR CONTACT // DEVELOPER</span>
+          </div>
+          <button class="btn-back skew press" data-go="hero">ESC • BACK</button>
+        </div>
+        <div class="grid-split">
+          <div class="contact-art" data-reveal>
+            <!-- GANTI GAMBAR: assets/images/contact.png (rasio 4:5) -->
+            <figure class="frame frame-portrait tilt" data-slot="assets/images/contact.png">
+              <img src="assets/images/contact.png" alt="Ilustrasi kontak" loading="lazy" onerror="this.parentNode.classList.add('no-img')">
+              <figcaption class="contact-cap"><span class="plane">✈</span><b>KIRIM PESAN</b><small>Terbuka untuk freelance &amp; full-time.</small></figcaption>
+            </figure>
+          </div>
+          <div class="channels">
+            <a class="channel press" href="mailto:aliifaryazakii@gmail.com" data-reveal>
+              <span class="ch-ico">M</span><span class="ch-txt"><b>GMAIL</b><small>aliifaryazakii@gmail.com</small></span><span class="ch-go">SEND MAIL ►</span>
+            </a>
+            <a class="channel press" href="https://www.tiktok.com/@aliifaryazakii" target="_blank" rel="noopener" data-reveal>
+              <span class="ch-ico">T</span><span class="ch-txt"><b>TIKTOK</b><small>@aliifaryazakii</small></span><span class="ch-go">VISIT ►</span>
+            </a>
+            <a class="channel press" href="https://github.com/aliifaryazz" target="_blank" rel="noopener" data-reveal>
+              <span class="ch-ico">G</span><span class="ch-txt"><b>GITHUB</b><small>github.com/aliifaryazakii</small></span><span class="ch-go">VISIT ►</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Tulisan bergerak -->
+    <div class="ticker" aria-hidden="true">
+      <div class="band a"><div class="track" data-ticker="main"></div></div>
+      <div class="band b"><div class="track" data-ticker="alt"></div></div>
+    </div>
+
+    <footer class="hud-footer">
+      <div class="keys">
+        <span><kbd>↑↓</kbd> PILIH</span>
+        <span><kbd>ENTER</kbd> OK</span>
+        <span><kbd>ESC</kbd> KEMBALI</span>
+      </div>
+      <div class="clock"><span id="clock">20:10</span> • SUB</div>
+    </footer>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
